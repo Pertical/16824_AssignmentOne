@@ -53,7 +53,23 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             # Function Outputs:
             #   - `output`: Computed loss, a single floating point number
             ##################################################################
-            loss = 0
+
+            #print("wgt", wgt)
+            #rint("output", output[0])
+
+            #BCE with logits loss
+            # loss = 0
+
+            output = torch.sigmoid(output)
+
+            loss = - (target * torch.log(output + 1e-10) +
+              (1 - target) * torch.log(1 - output + 1e-10)) * wgt
+
+            loss = torch.mean(loss)
+
+            # cretirion = torch.nn.BCEWithLogitsLoss()
+            # loss = cretirion(output, target)
+
             ##################################################################
             #                          END OF YOUR CODE                      #
             ##################################################################
