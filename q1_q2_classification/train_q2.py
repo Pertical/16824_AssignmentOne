@@ -17,8 +17,16 @@ class ResNet(nn.Module):
         ##################################################################
         # TODO: Define a FC layer here to process the features
         ##################################################################
+        
+        # self.fc = nn.Linear(1000, num_classes)
 
-        self.fc = nn.Linear(1000, num_classes)
+
+        self.fc = nn.Sequential(
+            nn.Linear(1000, 256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, num_classes)
+        )
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -50,11 +58,11 @@ if __name__ == "__main__":
     ##################################################################
     args = ARGS(
         epochs=50,
-        inp_size=64,
+        inp_size=224,
         use_cuda=True,
         val_every=70,
-        lr=0.01,
-        batch_size=32,
+        lr=0.001,
+        batch_size=16,
         step_size=10,
         gamma=0.1
     )
