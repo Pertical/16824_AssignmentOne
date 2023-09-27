@@ -18,15 +18,15 @@ class ResNet(nn.Module):
         # TODO: Define a FC layer here to process the features
         ##################################################################
         
-        # self.fc = nn.Linear(1000, num_classes)
+        self.fc = nn.Linear(1000, num_classes)
 
 
-        self.fc = nn.Sequential(
-            nn.Linear(1000, 256),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, num_classes)
-        )
+        # self.fc = nn.Sequential(
+        #     nn.Linear(1000, 512),
+        #     # nn.ReLU(),
+        #     # nn.Dropout(0.5),
+        #     nn.Linear(512, num_classes)
+        # )
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -61,10 +61,10 @@ if __name__ == "__main__":
         inp_size=224,
         use_cuda=True,
         val_every=70,
-        lr=0.001,
-        batch_size=16,
+        lr=0.00001,
+        batch_size=24,
         step_size=10,
-        gamma=0.1
+        gamma=0.8
     )
     ##################################################################
     #                          END OF YOUR CODE                      #
@@ -91,3 +91,15 @@ if __name__ == "__main__":
     # trains model using your training code and reports test map
     test_ap, test_map = trainer.train(args, model, optimizer, scheduler)
     print('test map:', test_map)
+
+# import torch
+
+# # Check if CUDA is available
+# if torch.cuda.is_available():
+#     device = torch.device("cuda")
+#     print("Using GPU")
+# else:
+#     device = torch.device("cpu")
+#     print("Using CPU")
+
+# # Now, you can use 'device' for your model and data transfers
