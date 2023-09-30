@@ -78,6 +78,7 @@ class DetectorBackboneWithFPN(nn.Module):
         # there are trainable weights inside it.
         # Add THREE lateral 1x1 conv and THREE output 3x3 conv layers.
         self.fpn_params = nn.ModuleDict()
+        
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################

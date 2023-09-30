@@ -140,6 +140,14 @@ def fcos_get_deltas_from_locations(
     # Set this to Tensor of shape (N, 4) giving deltas (left, top, right, bottom)
     # from the locations to GT box edges, normalized by FPN stride.
     deltas = None
+
+    gt_boxes = gt_boxes[:, :4]
+    background = gt_boxes[:, 0] == -1
+
+    x, y = locations.unbind(dim=1)
+    x0, y0, x1, y1 = gt_boxes.unbind(dim=1)
+
+
     pass
     ##########################################################################
     #                             END OF YOUR CODE                           #
