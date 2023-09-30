@@ -141,14 +141,26 @@ def fcos_get_deltas_from_locations(
     # from the locations to GT box edges, normalized by FPN stride.
     deltas = None
 
+    # Get GT boxes and remove class label if present.
     gt_boxes = gt_boxes[:, :4]
     background = gt_boxes[:, 0] == -1
 
+    # Unpack locations and GT boxes.
     x, y = locations.unbind(dim=1)
     x0, y0, x1, y1 = gt_boxes.unbind(dim=1)
 
+    # Compute deltas from locations to GT box edges. 
+    delta_l = x - x0
+    delta_t = y - y0
+    delta_r = x1 - x
+    delta_b = y1 - y
 
-    pass
+    # Stack deltas and normalize by stride.
+    deltas = torch.stack([delta_l, delta_t, delta_r, delta_b], dim=1)
+    deltas /= stride
+
+    # Set background deltas to be (-1, -1, -1, -1).
+    deltas[background] = -1
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
