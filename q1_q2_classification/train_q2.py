@@ -18,15 +18,18 @@ class ResNet(nn.Module):
         # TODO: Define a FC layer here to process the features
         ##################################################################
         
-        self.fc = nn.Linear(1000, num_classes)
+        # self.fc = nn.Linear(1000, num_classes)
+
+        # self.resnet.fc = nn.Linear(1000, num_classes)
 
 
-        # self.fc = nn.Sequential(
-        #     nn.Linear(1000, 512),
-        #     # nn.ReLU(),
-        #     # nn.Dropout(0.5),
-        #     nn.Linear(512, num_classes)
-        # )
+        self.fc = nn.Sequential(
+            nn.Linear(1000, 512),
+            # nn.Linear(512, 256),
+            # nn.ReLU(),
+            # nn.Dropout(0.2),
+            nn.Linear(512, num_classes)
+        )
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
@@ -44,6 +47,37 @@ class ResNet(nn.Module):
         ##################################################################
 
 
+
+
+# def plot_tsne(model, checkpoint, loader, device):
+# ##################################################################
+#     from sklearn.manifold import TSNE
+
+#     n_classes = 20 
+
+#     dataset = VOCDataset('test', 224)
+#     total_test_images = len(dataset)
+
+#     print("total_test_images", total_test_images)
+#     indices = np.randint(0, total_test_images, (1000,))
+#     print("indices", indices)
+
+#     labels = []
+#     for i in indices:
+#         labels.append((dataset[i][1]).reshape(1,n_classes))
+    
+#     labels = np.vstack(labels)
+#     print("labels", labels.shape)
+
+#     model = ResNet(len(VOCDataset.CLASS_NAMES)).to(device)
+#     model.load_state_dict(torch.load('checkpoint-model-epoch50.pth'))
+
+#     for name, module in model.named_modules():
+#         if name == 'resnet':
+#             print("module", module)
+#             module.register_forward_hook(get_activation('resnet'))
+
+
 if __name__ == "__main__":
     np.random.seed(0)
     torch.manual_seed(0)
@@ -57,14 +91,17 @@ if __name__ == "__main__":
     # You should get a map of around 50 in 50 epochs
     ##################################################################
     args = ARGS(
-        epochs=50,
+        epochs=100,
         inp_size=224,
         use_cuda=True,
         val_every=70,
         lr=0.00001,
-        batch_size=24,
+        batch_size=16,
         step_size=10,
-        gamma=0.8
+        gamma=0.05, 
+        #added to save the finetuned model. 
+        save_at_end = True, 
+        save_freq = 10 
     )
     ##################################################################
     #                          END OF YOUR CODE                      #
