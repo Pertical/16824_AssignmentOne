@@ -185,8 +185,24 @@ class FCOSPredictionNetwork(nn.Module):
         stem_cls = []
         stem_box = []
         # Replace "pass" statement with your code
-        pass
+        
+        #Create a stem of alternating 3x3 convolution layers and RELU activation modules.
+        #Note there are two separate stems for class and box stem. The prediction layers for box regression and centerness operate on the output of `stem_box`.
+        #See FCOS figure again; both stems are identical.
+        #Use `in_channels` and `stem_channels` for creating these layers, the docstring above tells you what they mean. Initialize weights of each conv layer from a normal distribution with mean = 0 and std dev = 0.01 and all biases with zero. Use conv stride = 1 and zero padding such that size of input features remains same: remember we need predictions at every location in feature map, we shouldn't "lose" any locations.
+        for i in range(len(stem_channels)):
+            if i == 0:
+                stem_cls.append(nn.Conv2d(in_channels, stem_channels[i], kernel_size=3, stride=1, padding=1))
+                stem_cls.append(nn.ReLU())
+                stem_box.append(nn.Conv2d(in_channels, stem_channels[i], kernel_size=3, stride=1, padding=1))
+                stem_box.append(nn.ReLU())
+            else:
+                stem_cls.append(nn.Conv2d(stem_channels[i-1], stem_channels[i], kernel_size=3, stride=1, padding=1))
+                stem_cls.append(nn.ReLU())
+                stem_box.append(nn.Conv2d(stem_channels[i-1], stem_channels[i], kernel_size=3, stride=1, padding=1))
+                stem_box.append(nn.ReLU())
 
+        
         # Wrap the layers defined by student into a `nn.Sequential` module:
         self.stem_cls = nn.Sequential(*stem_cls)
         self.stem_box = nn.Sequential(*stem_box)
@@ -207,9 +223,18 @@ class FCOSPredictionNetwork(nn.Module):
         ######################################################################
 
         # Replace these lines with your code, keep variable names unchanged.
-        self.pred_cls = None  # Class prediction conv
-        self.pred_box = None  # Box regression conv
-        self.pred_ctr = None  # Centerness conv
+        # self.pred_cls = None  # Class prediction conv
+        # self.pred_box = None  # Box regression conv
+        # self.pred_ctr = None  # Centerness conv
+
+        # Class prediction conv
+        self.pred_cls = nn.Conv2d(stem_channels[-1], num_classes, kernel_size=3, stride=1, padding=1)
+
+        # Box regression conv
+        self.pred_box = nn.Conv2d(stem_channels[-1], 4, kernel_size=3, stride=1, padding=1)
+
+        # Centerness conv
+        self.pred_ctr = nn.Conv2d(stem_channels[-1], 1, kernel_size=3, stride=1, padding=1)
 
         ######################################################################
         #                           END OF YOUR CODE                         #
