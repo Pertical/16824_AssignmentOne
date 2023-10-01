@@ -1,42 +1,54 @@
+
+from sklearn.manifold import TSNE
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 from PIL import Image
-from torchvision import transforms
-from sklearn.preprocessing import LabelEncoder
-from collections import Counter
+from voc_dataset import *
+import random 
+import torch 
+import torchvision.models as models
 
+from utils import *
 from train_q2 import ResNet
-from voc_dataset import VOCDataset
+from sklearn.preprocessing import LabelEncoder
 
-# Load your test dataset with images and ground truth class labels
-# Replace this with code to load your dataset
-test_images = []  # List of PIL images
-test_labels = []  # List of ground truth class labels
 
-# Initialize a pre-trained ResNet model and feature extractor
-# Replace this with code to initialize your model
-model = ResNet(num_classes=len(VOCDataset.CLASS_NAMES))  # Change num_classes based on your model
+# voc_data = VOCDataset(split='test', size = 224)
 
-# Initialize a TSNE object for dimensionality reduction
+voc_loader = get_data_loader('voc', train=False, batch_size=1, split='test', inp_size=224)
+
+test_images = []
+test_labels = []
+
+
+for i in range(1000):
+    for img, label, _ in voc_loader:
+        img = img.numpy()  # Convert to NumPy array
+        img = torch.from_numpy(img).detach()  # Detach from gradients
+        test_images.append(img)
+        test_labels.append(label)
+
+model = ResNet(len(VOCDataset.CLASS_NAMES)).to(use_cuda=True)
+model.load_state_dict(torch.load('checkpoint-model-epoch50.pth'))
+model.eval()
+
 tsne = TSNE(n_components=2, random_state=0)
 
-# Extract features from the images
 features = []
 for img in test_images:
     img = transforms.ToTensor()(img)
     img = img.unsqueeze(0)  # Add batch dimension
-    features.append(model(img).detach().numpy())
+    with torch.no_grad():  # Disable gradient calculation during inference
+        feature_vector = model(img).numpy()  # Extract features using the model
+    features.append(feature_vector)
 
 features = np.vstack(features)
+reduced_features  = tsne.fit_transform(features)
 
-# Perform t-SNE dimensionality reduction
-reduced_features = tsne.fit_transform(features)
+image_class_labels = test_labels  # Use the loaded labels
 
-# Calculate the mean color for each image's classes
-# Replace this with code to get class labels for each image
-image_class_labels = []  # List of class labels for each image
 
+distinct_colors = plt.cm.get_cmap('tab20', len(VOCDataset.CLASS_NAMES))
 mean_colors = []
 label_encoder = LabelEncoder()
 
