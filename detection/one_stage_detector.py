@@ -281,10 +281,10 @@ class FCOS(nn.Module):
         # TODO: Initialize backbone and prediction network using arguments.  #
         ######################################################################
         # Feel free to delete these two lines: (but keep variable names same)
-        self.backbone = None
-        self.pred_net = None
+        self.backbone = DetectorBackboneWithFPN(fpn_channels)
+        self.pred_net = FCOSPredictionNetwork(num_classes, fpn_channels, stem_channels)
         # Replace "pass" statement with your code
-        pass
+
         ######################################################################
         #                           END OF YOUR CODE                         #
         ######################################################################
