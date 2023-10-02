@@ -277,14 +277,34 @@ class FCOSPredictionNetwork(nn.Module):
         #
         # DO NOT apply sigmoid to classification and centerness logits.
         ######################################################################
-        # Fill these with keys: {"p3", "p4", "p5"}, same as input dictionary.
-        class_logits = {}
-        boxreg_deltas = {}
-        centerness_logits = {}
-
-
         
+        # Fill these with keys: {"p3", "p4", "p5"}, same as input dictionary.
+        class_logits = {"p3": None, "p4": None, "p5": None}
+        boxreg_deltas = {"p3": None, "p4": None, "p5": None}
+        centerness_logits = {"p3": None, "p4": None, "p5": None}
 
+        #Pass each FPN feature map through the stem
+        p3_stem = self.stem_cls(feats_per_fpn_level["p3"])
+        p4_stem = self.stem_cls(feats_per_fpn_level["p4"])
+        p5_stem = self.stem_cls(feats_per_fpn_level["p5"])
+
+        p3_stemBox = self.stem_box(feats_per_fpn_level["p3"])
+        p4_stemBox = self.stem_box(feats_per_fpn_level["p4"])
+        p5_stemBox = self.stem_box(feats_per_fpn_level["p5"])
+
+        #Pass each FPN feature map through the prediction layers
+        #Flattened to one diamension, resulting in (batch_size, H * W, num_classes) format. 
+        class_logits["p3"] = self.pred_cls(p3_stem).flatten(2).permute(0, 2, 1)
+        class_logits["p4"] = self.pred_cls(p4_stem).flatten(2).permute(0, 2, 1)
+        class_logits["p5"] = self.pred_cls(p5_stem).flatten(2).permute(0, 2, 1)
+
+        boxreg_deltas["p3"] = self.pred_box(p3_stemBox).flatten(2).permute(0, 2, 1)
+        boxreg_deltas["p4"] = self.pred_box(p4_stemBox).flatten(2).permute(0, 2, 1)
+        boxreg_deltas["p5"] = self.pred_box(p5_stemBox).flatten(2).permute(0, 2, 1)
+
+        centerness_logits["p3"] = self.pred_ctr(p3_stemBox).flatten(2).permute(0, 2, 1)
+        centerness_logits["p4"] = self.pred_ctr(p4_stemBox).flatten(2).permute(0, 2, 1)
+        centerness_logits["p5"] = self.pred_ctr(p5_stemBox).flatten(2).permute(0, 2, 1)
 
         ######################################################################
         #                           END OF YOUR CODE                         #
@@ -311,8 +331,10 @@ class FCOS(nn.Module):
         # TODO: Initialize backbone and prediction network using arguments.  #
         ######################################################################
         # Feel free to delete these two lines: (but keep variable names same)
+
         self.backbone = DetectorBackboneWithFPN(fpn_channels)
         self.pred_net = FCOSPredictionNetwork(num_classes, fpn_channels, stem_channels)
+        
         # Replace "pass" statement with your code
 
         ######################################################################
