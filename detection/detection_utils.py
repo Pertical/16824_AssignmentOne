@@ -203,6 +203,21 @@ def fcos_apply_deltas_to_locations(
     ##########################################################################
     output_boxes = None
 
+    # Unpack locations and deltas.
+    deltas *= stride
+    x, y = locations.unbind(dim=1)
+    delta_l, delta_t, delta_r, delta_b = deltas.unbind(dim=1)
+
+    # Compute box co-ordinates.
+    x0 = x - delta_l
+    y0 = y - delta_t
+    x1 = x + delta_r
+    y1 = y + delta_b
+
+    # Stack boxes and clip to zero.
+    output_boxes = torch.stack([x0, y0, x1, y1], dim=1)
+    output_boxes = output_boxes.clamp(min=0)
+
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
@@ -236,6 +251,24 @@ def fcos_make_centerness_targets(deltas: torch.Tensor):
     # )
     ##########################################################################
     centerness = None
+
+    # Unpack deltas.
+    delta_l, delta_t, delta_r, delta_b = deltas.unbind(dim=1)
+
+    if any(deltas) == 1:
+
+        centerness = -1
+
+    else:
+        # Compute centerness.
+        min_lr = torch.min(delta_l, delta_r)
+        min_tb = torch.min(delta_t, delta_b)
+        max_lr = torch.max(delta_l, delta_r)
+        max_tb = torch.max(delta_t, delta_b)
+
+        centerness = torch.sqrt(torch.div((min_lr*min_tb), (max_lr*max_tb)))
+
+
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
@@ -266,7 +299,7 @@ def get_fpn_location_coords(
             Dictionary with same keys as `shape_per_fpn_level` and values as
             tensors of shape `(H * W, 2)` giving `(xc, yc)` co-ordinates of the
             centers of receptive fields of the FPN locations, on input image.
-    """
+        """
 
     # Set these to `(N, 2)` Tensors giving absolute location co-ordinates.
     location_coords = {
@@ -278,7 +311,15 @@ def get_fpn_location_coords(
         ##################################################################–####
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
-        pass
+        b, c, h, w = feat_shape[:, 4]
+        x = torch.arange(w, dtype=dtype, device=device)
+        y = torch.arange(h, dtype=dtype, device=device)
+        x, y = torch.meshgrid(x, y)
+        x = x.reshape(-1)
+        y = y.reshape(-1)
+        location_coords[level_name] = torch.stack((x, y), dim=1) * level_stride
+
+        
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################

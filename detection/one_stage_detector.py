@@ -281,6 +281,11 @@ class FCOSPredictionNetwork(nn.Module):
         class_logits = {}
         boxreg_deltas = {}
         centerness_logits = {}
+
+
+        
+
+
         ######################################################################
         #                           END OF YOUR CODE                         #
         ######################################################################
