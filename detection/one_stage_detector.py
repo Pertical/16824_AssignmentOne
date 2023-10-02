@@ -483,6 +483,36 @@ class FCOS(nn.Module):
         # Feel free to delete this line: (but keep variable names same)
         loss_cls, loss_box, loss_ctr = None, None, None
 
+        indices = matched_gt_boxes[:, :, -1].to(torch.int64) + 1
+        # print(indices.shape)
+        # gt_classes = torch.zeros((indices.shape[0], indices.shape[1], self.num_classes), dtype=torch.float64, device=indices.device)
+        # for i in range(indices.shape[0]):
+        #   for j in range(indices.shape[1]):
+        #     if indices[i, j] != torch.tensor(-1):
+        #       gt_classes[i, j, indices[i, j]] = 1
+
+        one_hot_index = torch.cat((torch.zeros(1, self.num_classes), torch.eye(self.num_classes)), dim = 0).to(device=indices.device)
+        gt_classes = one_hot_index[indices]
+        # print("gt_classes.shape", gt_classes.shape)
+        
+        # print(gt_classes.shape)
+        # print(pred_cls_logits.shape)
+        loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes)
+
+        # print(pred_boxreg_deltas.shape)
+        # print(matched_gt_boxes.shape)
+        loss_box = 0.25 * F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
+        loss_box[matched_gt_deltas < 0] *= 0.0
+
+        # print(matched_gt_deltas.shape)
+        # print(pred_ctr_logits.flatten().shape)
+
+        centerness = fcos_make_centerness_targets(matched_gt_deltas.view(-1, 4))
+        loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.flatten(), centerness, reduction="none")
+        loss_ctr[centerness < 0] *= 0.0
+
+
+
 
         ######################################################################
         #                            END OF YOUR CODE                        #
@@ -579,19 +609,25 @@ class FCOS(nn.Module):
             )
             # Step 1:
             # Replace "pass" statement with your code
-            pass
+            level_pred_scores, indices = torch.max(level_pred_scores, dim = 1)
             
             # Step 2:
             # Replace "pass" statement with your code
-            pass
+            kept_indices = (level_pred_scores > test_score_thresh).nonzero()
+            level_pred_scores = level_pred_scores[kept_indices].flatten()
+            level_pred_classes = indices[kept_indices].flatten()
 
             # Step 3:
             # Replace "pass" statement with your code
-            pass
+            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[kept_indices].reshape(-1, 4), level_locations[kept_indices].reshape(-1, 2), self.backbone.fpn_strides[level_name])
+            # (K, 4)
 
             # Step 4: Use `images` to get (height, width) for clipping.
             # Replace "pass" statement with your code
-            pass
+            level_pred_boxes[:, 0] = level_pred_boxes[:, 0].clip(min=0)
+            level_pred_boxes[:, 1] = level_pred_boxes[:, 1].clip(min=0)
+            level_pred_boxes[:, 2] = level_pred_boxes[:, 2].clip(max=images.shape[2])
+            level_pred_boxes[:, 3] = level_pred_boxes[:, 3].clip(max=images.shape[3])
 
             ##################################################################
             #                          END OF YOUR CODE                      #
