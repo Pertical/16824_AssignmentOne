@@ -311,8 +311,8 @@ def get_fpn_location_coords(
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
         
-        b, c, h, w = feat_shape[:, 4]
-        
+        b, c, h, w = feat_shape[:, :4]
+
         x = torch.arange(w, dtype=dtype, device=device)
         y = torch.arange(h, dtype=dtype, device=device)
         x, y = torch.meshgrid(x, y)
