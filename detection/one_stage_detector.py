@@ -378,8 +378,8 @@ class FCOS(nn.Module):
         # logits, deltas, and centerness.                                    #
         ######################################################################
         # Feel free to delete this line: (but keep variable names same)
-        backbone_feats = None
-        pred_cls_logits, pred_boxreg_deltas, pred_ctr_logits = None, None, None
+        backbone_feats = self.backbone.forward(images)
+        pred_cls_logits, pred_boxreg_deltas, pred_ctr_logits = self.pred_net.forward(backbone_feats)
 
         ######################################################################
         # TODO: Get absolute co-ordinates `(xc, yc)` for every location in
@@ -389,7 +389,10 @@ class FCOS(nn.Module):
         # call the functions properly.
         ######################################################################
         # Feel free to delete this line: (but keep variable names same)
-        locations_per_fpn_level = None
+
+        shape_per_fpn_level = [(key, value.shape) for key, value in backbone_feats.items()]
+
+        locations_per_fpn_level = get_fpn_location_coords(shape_per_fpn_level, self.backbone.fpn_strides, device=images.device)
 
         ######################################################################
         #                           END OF YOUR CODE                         #
@@ -415,13 +418,40 @@ class FCOS(nn.Module):
         # List of dictionaries with keys {"p3", "p4", "p5"} giving matched
         # boxes for locations per FPN level, per image. Fill this list:
         matched_gt_boxes = []
-        pass
+
+        for i in range(gt_boxes.shape[0]):
+            matched_gt_boxes.append(fcos_match_locations_to_gt(
+                locations_per_fpn_level,
+                self.backbone.fpn_strides, 
+                gt_boxes[i]))
+
 
         # Calculate GT deltas for these matched boxes. Similar structure
         # as `matched_gt_boxes` above. Fill this list:
         matched_gt_deltas = []
         # Replace "pass" statement with your code
-        pass
+
+        # matched_gt_deltas_per_fpn_level = {level_name: None for level_name in locations_per_fpn_level.keys()}
+
+
+        for macthed_boxes_per_fpn_level in matched_gt_boxes:
+
+            matched_gt_deltas_per_fpn_level = {}
+
+            for level_name in macthed_boxes_per_fpn_level.keys():
+
+                deltas = fcos_get_deltas_from_locations(
+                    locations_per_fpn_level[level_name],
+                    macthed_boxes_per_fpn_level[level_name],
+                    self.backbone.fpn_strides[level_name]
+                )
+
+                matched_gt_deltas_per_fpn_level[level_name] = deltas
+            
+            matched_gt_deltas.append(matched_gt_deltas_per_fpn_level)
+
+    
+    
         ######################################################################
         #                           END OF YOUR CODE                         #
         ######################################################################

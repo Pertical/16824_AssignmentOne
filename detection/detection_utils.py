@@ -313,8 +313,8 @@ def get_fpn_location_coords(
         
         b, c, h, w = feat_shape[:, :4]
 
-        x = torch.arange(w, dtype=dtype, device=device)
-        y = torch.arange(h, dtype=dtype, device=device)
+        x = torch.arange(w, dtype=dtype, device=device) + 0.5
+        y = torch.arange(h, dtype=dtype, device=device) + 0.5
         x, y = torch.meshgrid(x, y)
 
         x = x.reshape(-1)
