@@ -268,7 +268,6 @@ def fcos_make_centerness_targets(deltas: torch.Tensor):
 
         centerness = torch.sqrt(torch.div((min_lr*min_tb), (max_lr*max_tb)))
 
-
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
