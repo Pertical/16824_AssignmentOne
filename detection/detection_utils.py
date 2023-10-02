@@ -141,26 +141,33 @@ def fcos_get_deltas_from_locations(
     # from the locations to GT box edges, normalized by FPN stride.
     deltas = None
 
-    # Get GT boxes and remove class label if present.
+    #Get GT boxes and remove class label if present.
     gt_boxes = gt_boxes[:, :4]
-    background = gt_boxes[:, 0] == -1
+    background = (gt_boxes == -1)
+    # print("background:", background)
+
+    #print("gt boxes:", gt_boxes)
+    # print("locations:", locations)
 
     # Unpack locations and GT boxes.
     x, y = locations.unbind(dim=1)
+
     x0, y0, x1, y1 = gt_boxes.unbind(dim=1)
 
     # Compute deltas from locations to GT box edges. 
-    delta_l = x - x0
-    delta_t = y - y0
-    delta_r = x1 - x
-    delta_b = y1 - y
+    delta_l = (x - x0)/stride
+    delta_t = (y - y0)/stride
+    delta_r = (x1 - x)/stride
+    delta_b = (y1 - y)/stride
 
     # Stack deltas and normalize by stride.
     deltas = torch.stack([delta_l, delta_t, delta_r, delta_b], dim=1)
-    deltas /= stride
 
     # Set background deltas to be (-1, -1, -1, -1).
     deltas[background] = -1
+    #print("deltas:", deltas)
+
+
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
@@ -203,6 +210,8 @@ def fcos_apply_deltas_to_locations(
     ##########################################################################
     output_boxes = None
 
+    deltas = deltas.clamp(min=0)
+
     # Unpack locations and deltas.
     deltas *= stride
     x, y = locations.unbind(dim=1)
@@ -216,7 +225,8 @@ def fcos_apply_deltas_to_locations(
 
     # Stack boxes and clip to zero.
     output_boxes = torch.stack([x0, y0, x1, y1], dim=1)
-    output_boxes = output_boxes.clamp(min=0)
+    
+    
 
     ##########################################################################
     #                             END OF YOUR CODE                           #
@@ -252,21 +262,32 @@ def fcos_make_centerness_targets(deltas: torch.Tensor):
     ##########################################################################
     centerness = None
 
+    background = (deltas[:, 0]==-1)
+
+    delta_l = deltas[:, 0]
+    delta_t = deltas[:, 1]
+    delta_r = deltas[:, 2]
+    delta_b = deltas[:, 3]
+
+    centerness = torch.sqrt(torch.div((torch.min(delta_l, delta_r)*torch.min(delta_t, delta_b)), (torch.max(delta_l, delta_r)*torch.max(delta_t, delta_b))))
+    centerness[background] = -1
+
+
     # Unpack deltas.
-    delta_l, delta_t, delta_r, delta_b = deltas.unbind(dim=1)
+    # delta_l, delta_t, delta_r, delta_b = deltas.unbind(dim=1)
 
-    if any(deltas) == 1:
+    # if (deltas ==1 ).any():
 
-        centerness = -1
+    #     centerness = -1
 
-    else:
-        # Compute centerness.
-        min_lr = torch.min(delta_l, delta_r)
-        min_tb = torch.min(delta_t, delta_b)
-        max_lr = torch.max(delta_l, delta_r)
-        max_tb = torch.max(delta_t, delta_b)
+    # else:
+    #     # Compute centerness.
+    #     min_lr = torch.min(delta_l, delta_r)
+    #     min_tb = torch.min(delta_t, delta_b)
+    #     max_lr = torch.max(delta_l, delta_r)
+    #     max_tb = torch.max(delta_t, delta_b)
 
-        centerness = torch.sqrt(torch.div((min_lr*min_tb), (max_lr*max_tb)))
+    #     centerness = torch.sqrt(torch.div((min_lr*min_tb), (max_lr*max_tb)))
 
     ##########################################################################
     #                             END OF YOUR CODE                           #
@@ -311,7 +332,7 @@ def get_fpn_location_coords(
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
 
-        print(feat_shape)
+        #print("feat shape:", feat_shape)
         b, c, h, w = feat_shape
 
         x = torch.arange(w, dtype=dtype, device=device) + 0.5

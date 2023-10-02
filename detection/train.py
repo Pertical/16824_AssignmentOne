@@ -23,6 +23,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from torchvision.utils import make_grid
+import numpy as np
 
 from detection_helper import train_detector, inference_with_detector
 from detection_helper import VOC2007DetectionTiny
@@ -118,7 +119,8 @@ def visualize_gt(train_dataset, val_dataset):
         # Remove padded boxes from visualization.
         is_valid = gt_boxes[:, 4] >= 0
         img = detection_visualizer(image, val_dataset.idx_to_class, gt_boxes[is_valid])
-        gt_images.append(torch.from_numpy(img))
+        #gt_images.append(torch.from_numpy(img))
+        gt_images.append(torch.from_numpy(np.array(img, copy=True)))
     
     img_grid = make_grid(gt_images, nrow=8)
     writer.add_image("train/gt_images", img_grid, global_step=idx)
@@ -210,7 +212,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--visualize_gt", action="store_true")
     parser.add_argument(
-        "--overfit", type=bool, default=True
+        "--overfit", action="store_true" # True
     )
     parser.add_argument(
         "--inference", type=bool, default=False

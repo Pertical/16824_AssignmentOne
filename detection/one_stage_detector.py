@@ -57,9 +57,9 @@ class DetectorBackboneWithFPN(nn.Module):
         dummy_out = self.backbone(torch.randn(2, 3, 224, 224))
         dummy_out_shapes = [(key, value.shape) for key, value in dummy_out.items()]
 
-        print("For dummy input images with shape: (2, 3, 224, 224)")
-        for level_name, feature_shape in dummy_out_shapes:
-            print(f"Shape of {level_name} features: {feature_shape}")
+        # print("For dummy input images with shape: (2, 3, 224, 224)")
+        # for level_name, feature_shape in dummy_out_shapes:
+        #     print(f"Shape of {level_name} features: {feature_shape}")
 
         ######################################################################
         # TODO: Initialize additional Conv layers for FPN.                   #
@@ -390,8 +390,8 @@ class FCOS(nn.Module):
         ######################################################################
         # Feel free to delete this line: (but keep variable names same)
 
-        shape_per_fpn_level = [(key, value.shape) for key, value in backbone_feats.items()]
-
+        shape_per_fpn_level = {key : value.shape for key, value in backbone_feats.items()}
+        #print("shape per fpn level", type(shape_per_fpn_level))
         locations_per_fpn_level = get_fpn_location_coords(shape_per_fpn_level, self.backbone.fpn_strides, device=images.device)
 
         ######################################################################
@@ -483,29 +483,19 @@ class FCOS(nn.Module):
         # Feel free to delete this line: (but keep variable names same)
         loss_cls, loss_box, loss_ctr = None, None, None
 
+        print("matched_gt_boxes", matched_gt_boxes.shape)
+
         indices = matched_gt_boxes[:, :, -1].to(torch.int64) + 1
-        # print(indices.shape)
-        # gt_classes = torch.zeros((indices.shape[0], indices.shape[1], self.num_classes), dtype=torch.float64, device=indices.device)
-        # for i in range(indices.shape[0]):
-        #   for j in range(indices.shape[1]):
-        #     if indices[i, j] != torch.tensor(-1):
-        #       gt_classes[i, j, indices[i, j]] = 1
+        # print("indices", indices)
+        print("indices shape", indices.shape)
 
         one_hot_index = torch.cat((torch.zeros(1, self.num_classes), torch.eye(self.num_classes)), dim = 0).to(device=indices.device)
         gt_classes = one_hot_index[indices]
-        # print("gt_classes.shape", gt_classes.shape)
-        
-        # print(gt_classes.shape)
-        # print(pred_cls_logits.shape)
+
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes)
 
-        # print(pred_boxreg_deltas.shape)
-        # print(matched_gt_boxes.shape)
         loss_box = 0.25 * F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
         loss_box[matched_gt_deltas < 0] *= 0.0
-
-        # print(matched_gt_deltas.shape)
-        # print(pred_ctr_logits.flatten().shape)
 
         centerness = fcos_make_centerness_targets(matched_gt_deltas.view(-1, 4))
         loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.flatten(), centerness, reduction="none")

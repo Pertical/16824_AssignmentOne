@@ -1,2 +1,10 @@
 
 *.tar
+*.xml
+*.txt
+*.jpg
+*.png
+*.pyc
+*.json
+*.pth
+*.0
