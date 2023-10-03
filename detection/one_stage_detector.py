@@ -482,8 +482,8 @@ class FCOS(nn.Module):
         loss_cls, loss_box, loss_ctr = None, None, None
 
         #print("matched_gt_boxes", matched_gt_boxes.shape)
-        print("matched_gt_boxes", matched_gt_boxes[:, :, -1].shape)
-        print("matched_gt_boxes", matched_gt_boxes.shape)
+        # print("matched_gt_boxes", matched_gt_boxes[:, :, -1].shape)
+        # print("matched_gt_boxes", matched_gt_boxes.shape)
 
         indices = matched_gt_boxes[:, :, -1].to(torch.int64) + 1 
 
@@ -533,7 +533,7 @@ class FCOS(nn.Module):
         pred_cls_logits: Dict[str, torch.Tensor],
         pred_boxreg_deltas: Dict[str, torch.Tensor],
         pred_ctr_logits: Dict[str, torch.Tensor],
-        test_score_thresh: float = 0.3,
+        test_score_thresh: float = 0.25,
         test_nms_thresh: float = 0.5,
     ):
         """
@@ -602,14 +602,19 @@ class FCOS(nn.Module):
             #   1. Get the most confidently predicted class and its score for
             #      every box. Use level_pred_scores: (N, num_classes) => (N, )
             level_pred_scores, indices = torch.max(level_pred_scores, dim = 1)
+            #print("level_pred_scores", level_pred_scores)
             
             # Step 2:
             # Replace "pass" statement with your code
             #   2. Only retain prediction that have a confidence score higher
             #      than provided threshold in arguments.
-            kept_indices = (level_pred_scores > test_score_thresh).nonzero()
+
+
+            kept_indices = (level_pred_scores > test_score_thresh).nonzero().flatten()
             level_pred_scores = level_pred_scores[kept_indices].flatten()
             level_pred_classes = indices[kept_indices].flatten()
+
+            #print("kept_indices", kept_indices)
 
             # Step 3:
             # Replace "pass" statement with your code
@@ -617,6 +622,11 @@ class FCOS(nn.Module):
             level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[kept_indices].reshape(-1, 4), 
                                                               level_locations[kept_indices].reshape(-1, 2), 
                                                               self.backbone.fpn_strides[level_name])
+            
+
+            # print("level_pred_boxes", level_pred_boxes.shape)
+            # print("level_pred_boxes", level_pred_boxes)
+            
             # (K, 4)
 
             # Step 4: Use `images` to get (height, width) for clipping.
