@@ -54,7 +54,7 @@ class HyperParameters:
     image_shape: tuple = IMAGE_SHAPE
     lr: float = 1e-4
     log_period: int = 100
-    max_iters: int = 9000
+    max_iters: int = 1000 #9000
     device: str = DEVICE
 
 def create_dataset_and_dataloaders(subset=False):
