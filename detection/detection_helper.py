@@ -230,12 +230,14 @@ def train_detector(
         total_loss.backward()
         optimizer.step()
         lr_scheduler.step()
-        for key, value in losses.items():
-            writer.add_scalar("train/" + key + "_{}".format("overfit" if overfit else "full"), value, _iter)
+        # for key, value in losses.items():
+        #     writer.add_scalar("train/" + key + "_{}".format("overfit" if overfit else "full"), value, _iter)
         # Print losses periodically.
         if _iter % log_period == 0:
+
             loss_str = f"[Iter {_iter}][loss: {total_loss:.3f}]"
             for key, value in losses.items():
+                writer.add_scalar("train/" + key + "_{}".format("overfit" if overfit else "full"), value, _iter)
                 loss_str += f"[{key}: {value:.3f}]"
             print(loss_str)
             loss_history.append(total_loss.item())
@@ -290,6 +292,8 @@ def inference_with_detector(
         image_paths, images, gt_boxes = test_batch
         images = images.to(dtype=dtype, device=device)
 
+        print("images", images.shape)
+
         with torch.no_grad():
             if score_thresh is not None and nms_thresh is not None:
                 # shapes: (num_preds, 4) (num_preds, ) (num_preds, )
@@ -302,6 +306,7 @@ def inference_with_detector(
         # Skip current iteration if no predictions were found.
         if pred_boxes.shape[0] == 0:
             continue
+     
 
         # Remove padding (-1) and batch dimension from predicted / GT boxes
         # and transfer to CPU. Indexing `[0]` here removes batch dimension:
@@ -338,14 +343,17 @@ def inference_with_detector(
                     f_det.write(
                         f"{idx_to_class[b[4].item()]} {b[5]:.6f} {b[0]:.2f} {b[1]:.2f} {b[2]:.2f} {b[3]:.2f}\n"
                     )
+            
         else:
             image = detection_visualizer(
                 image, idx_to_class, gt_boxes, pred_boxes
             )
+            print("image", image.shape)
             all_images.append(torch.from_numpy(image))
     
     if output_dir is None:
         writer=SummaryWriter("detection_logs")
+        #print("All images", len(all_images))
         image_grid = make_grid(all_images, nrow=8)
         writer.add_image("test_images", image_grid)
         writer.close()
