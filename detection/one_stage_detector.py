@@ -494,13 +494,12 @@ class FCOS(nn.Module):
 
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes)
 
-        loss_box = 0.25 * F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
+        loss_box = F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
         loss_box[matched_gt_deltas < 0] *= 0.0
 
         centerness = fcos_make_centerness_targets(matched_gt_deltas.view(-1, 4))
         loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.flatten(), centerness, reduction="none")
         loss_ctr[centerness < 0] *= 0.0
-
 
         ######################################################################
         #                            END OF YOUR CODE                        #
