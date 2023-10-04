@@ -8,6 +8,11 @@ import torchvision
 import torch.nn as nn
 import random
 
+from utils import *
+
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+
 
 class ResNet(nn.Module):
     def __init__(self, num_classes) -> None:
@@ -40,42 +45,13 @@ class ResNet(nn.Module):
         # TODO: Return unnormalized log-probabilities here
         ##################################################################
         x = self.resnet(x)
+
         x = self.fc(x)
         return x
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
 
-
-
-
-# def plot_tsne(model, checkpoint, loader, device):
-# ##################################################################
-#     from sklearn.manifold import TSNE
-
-#     n_classes = 20 
-
-#     dataset = VOCDataset('test', 224)
-#     total_test_images = len(dataset)
-
-#     print("total_test_images", total_test_images)
-#     indices = np.randint(0, total_test_images, (1000,))
-#     print("indices", indices)
-
-#     labels = []
-#     for i in indices:
-#         labels.append((dataset[i][1]).reshape(1,n_classes))
-    
-#     labels = np.vstack(labels)
-#     print("labels", labels.shape)
-
-#     model = ResNet(len(VOCDataset.CLASS_NAMES)).to(device)
-#     model.load_state_dict(torch.load('checkpoint-model-epoch50.pth'))
-
-#     for name, module in model.named_modules():
-#         if name == 'resnet':
-#             print("module", module)
-#             module.register_forward_hook(get_activation('resnet'))
 
 
 if __name__ == "__main__":
@@ -91,7 +67,7 @@ if __name__ == "__main__":
     # You should get a map of around 50 in 50 epochs
     ##################################################################
     args = ARGS(
-        epochs=100,
+        epochs=50,
         inp_size=224,
         use_cuda=True,
         val_every=70,
@@ -101,7 +77,7 @@ if __name__ == "__main__":
         gamma=0.05, 
         #added to save the finetuned model. 
         save_at_end = True, 
-        save_freq = 10 
+        # save_freq = 10 
     )
     ##################################################################
     #                          END OF YOUR CODE                      #
@@ -129,14 +105,6 @@ if __name__ == "__main__":
     test_ap, test_map = trainer.train(args, model, optimizer, scheduler)
     print('test map:', test_map)
 
-# import torch
 
-# # Check if CUDA is available
-# if torch.cuda.is_available():
-#     device = torch.device("cuda")
-#     print("Using GPU")
-# else:
-#     device = torch.device("cpu")
-#     print("Using CPU")
 
-# # Now, you can use 'device' for your model and data transfers
+

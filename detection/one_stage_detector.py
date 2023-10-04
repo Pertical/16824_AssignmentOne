@@ -594,6 +594,8 @@ class FCOS(nn.Module):
             )
 
             # Compute geometric mean of class logits and centerness:
+            
+            
             level_pred_scores = torch.sqrt(
                 level_cls_logits.sigmoid_() * level_ctr_logits.sigmoid_()
             )
@@ -601,7 +603,9 @@ class FCOS(nn.Module):
             # Replace "pass" statement with your code
             #   1. Get the most confidently predicted class and its score for
             #      every box. Use level_pred_scores: (N, num_classes) => (N, )
+            
             level_pred_scores, indices = torch.max(level_pred_scores, dim = 1)
+            
             #print("level_pred_scores", level_pred_scores)
             
             # Step 2:
@@ -633,8 +637,10 @@ class FCOS(nn.Module):
             # Replace "pass" statement with your code
             #   4. Clip XYXY box-cordinates that go beyond the height and
             #      and width of input image.
+            
             level_pred_boxes[:, 0] = level_pred_boxes[:, 0].clip(min=0)
             level_pred_boxes[:, 1] = level_pred_boxes[:, 1].clip(min=0)
+            
             level_pred_boxes[:, 2] = level_pred_boxes[:, 2].clip(max=images.shape[2])
             level_pred_boxes[:, 3] = level_pred_boxes[:, 3].clip(max=images.shape[3])
 

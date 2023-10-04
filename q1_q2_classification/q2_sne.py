@@ -9,64 +9,112 @@ import torch
 import torchvision.models as models
 
 from utils import *
-from train_q2 import ResNet
+from train_q2 import *
 from sklearn.preprocessing import LabelEncoder
 
 
-# voc_data = VOCDataset(split='test', size = 224)
 
-voc_loader = get_data_loader('voc', train=False, batch_size=1, split='test', inp_size=224)
+if __name__ =="__main__": 
 
-test_images = []
-test_labels = []
+    np.random.seed(16824)
+
+    resnetCkpt = './checkpoint-model-epoch50.pth'
+
+    device = torch.device("cuda")
+
+    resnet = torch.load(resnetCkpt)
+
+    # print(type(resnet))
+
+    # print("before\n",resnet.state_dict().keys())   
+    # print(list(resnet.children())[:-1])
+    # Remove the fc layer to get outputs before fc layers
+    resnet = torch.nn.Sequential(*(list(resnet.children())[:-1]))
+    # print(type(resnet))
+    # print("after\n", resnet.state_dict().keys())
 
 
-for i in range(1000):
+    voc_loader = get_data_loader('voc', train=False, batch_size=16, split='test', inp_size=224)
+
+    test_images = []
+    test_labels = []
+
+ 
     for img, label, _ in voc_loader:
-        img = img.numpy()  # Convert to NumPy array
-        img = torch.from_numpy(img).detach()  # Detach from gradients
+        # Append the entire batch
         test_images.append(img)
         test_labels.append(label)
 
-model = ResNet(len(VOCDataset.CLASS_NAMES)).to(use_cuda=True)
-model.load_state_dict(torch.load('checkpoint-model-epoch50.pth'))
-model.eval()
+    # Concatenate the lists to tensors
+    test_images = torch.cat(test_images, dim=0)
+    test_labels = torch.cat(test_labels, dim=0)
 
-tsne = TSNE(n_components=2, random_state=0)
+    selected_indices = np.random.choice(len(test_images), size=1000, replace=False)
 
-features = []
-for img in test_images:
-    img = transforms.ToTensor()(img)
-    img = img.unsqueeze(0)  # Add batch dimension
-    with torch.no_grad():  # Disable gradient calculation during inference
-        feature_vector = model(img).numpy()  # Extract features using the model
-    features.append(feature_vector)
+    # Select the subset of images and labels
+    selected_images = test_images[selected_indices].to(device)
+    selected_labels = test_labels[selected_indices]
 
-features = np.vstack(features)
-reduced_features  = tsne.fit_transform(features)
+    # Forward pass to get the features
+    selected_features = []
+    resnet.eval()
+    with torch.no_grad():
+        for img in selected_images:
+            output = resnet(img.unsqueeze(0))
+            selected_features.append(output.view(1, -1).cpu().numpy())
 
-image_class_labels = test_labels  # Use the loaded labels
+    selected_features = np.concatenate(selected_features, axis=0)
+
+    # Apply t-SNE on numpy array
+    embed_features = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=10000).fit_transform(selected_features)
+
+    colors_rgb = np.array([(230, 25, 75),
+                          (60, 180, 75),
+                          (255, 225, 25),
+                          (0, 130, 200),
+                          (245, 130, 48),
+                          (145, 30, 180),
+                          (70, 240, 240),
+                          (240, 50, 230),
+                          (210, 245, 60),
+                          (250, 190, 212),
+                          (0, 128, 128),
+                          (220, 190, 255),
+                          (170, 110, 40),
+                          (255, 250, 200),
+                          (128, 0, 0),
+                          (170, 255, 195),
+                          (128, 128, 0),
+                          (255, 215, 180),
+                          (0, 0, 128),
+                          (128, 128, 128)])
+    
+    
+    colors_rgb = colors_rgb / 255.
+
+    feature_colors = np.matmul(selected_labels.cpu().detach().numpy(), colors_rgb) / np.sum(selected_labels.cpu().detach().numpy(), axis=1).reshape(-1, 1)
+    
+    CLASS_NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
+                   'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
+                   'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+
+    custom_lines = []
+
+    for i in range(20):
+        custom_lines.append(plt.Line2D([0],
+                                      [0],
+                                      marker='o',
+                                      color=colors_rgb[i],
+                                      label=CLASS_NAMES[i],
+                                      markersize=10))
+
+    # Plot the tsne features with colors
+    plt.figure(figsize = (12,12))
+    plt.scatter(embed_features[:, 0], embed_features[:, 1], c=feature_colors)
+    plt.legend(handles=custom_lines)
+    plt.title("ResNet Visualizations")
+    plt.show()
+        
 
 
-distinct_colors = plt.cm.get_cmap('tab20', len(VOCDataset.CLASS_NAMES))
-mean_colors = []
-label_encoder = LabelEncoder()
 
-for labels in image_class_labels:
-    class_indices = label_encoder.transform(labels)
-    class_colors = [distinct_colors[i] for i in class_indices]
-    mean_color = np.mean(class_colors, axis=0)
-    mean_colors.append(mean_color)
-
-# Plot the 2D t-SNE projection with color-coded points
-plt.scatter(reduced_features[:, 0], reduced_features[:, 1], c=mean_colors)
-
-# Create a legend explaining the mapping from color to object class
-class_names = label_encoder.classes_
-legend_handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=class_name)
-                  for class_name, color in zip(class_names, distinct_colors)]
-
-plt.legend(handles=legend_handles, title="Object Class")
-
-# Show the plot
-plt.show()
