@@ -22686,3 +22686,4 @@ q1_q2_classification/data/VOCdevkit/VOC2007/SegmentationObject/009832.png
 q1_q2_classification/data/VOCdevkit/VOC2007/SegmentationObject/009841.png
 q1_q2_classification/data/VOCdevkit/VOC2007/SegmentationObject/009889.png
 q1_q2_classification/data/VOCdevkit/VOC2007/SegmentationObject/009897.png
+*.pyc

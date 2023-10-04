@@ -54,7 +54,7 @@ class HyperParameters:
     image_shape: tuple = IMAGE_SHAPE
     lr: float = 1e-4
     log_period: int = 100
-    max_iters: int = 9000
+    max_iters: int = 1000 #9000
     device: str = DEVICE
 
 def create_dataset_and_dataloaders(subset=False):
@@ -152,10 +152,10 @@ def main(args):
         stem_channels=[64, 64],
     )
 
-    if args.visualize_gt:
-        print("Visualizing GT...")
-        visualize_gt(train_dataset, val_dataset)        
-        return
+    # if args.visualize_gt:
+    #     print("Visualizing GT...")
+    #     visualize_gt(train_dataset, val_dataset)        
+    #     return
     
     print("Training model...")
     if not args.visualize_gt:
@@ -163,11 +163,17 @@ def main(args):
     print("Training complete! Saving loss curve to loss.png...")
     if not args.inference:
         return
+    
+    if args.visualize_gt:
+        print("Visualizing GT...")
+        visualize_gt(train_dataset, val_dataset)     
+        #return   
+
     print("Running inference...")
     if args.test_inference:
         small_dataset = torch.utils.data.Subset(
             val_dataset,
-            torch.linspace(0, len(val_dataset) - 1, steps=10).long()
+            torch.linspace(0, len(val_dataset) - 1, steps=20).long()
         )
         small_val_loader = torch.utils.data.DataLoader(
             small_dataset, batch_size=1, pin_memory=True, num_workers=NUM_WORKERS
@@ -177,16 +183,17 @@ def main(args):
 
         # Re-initialize so this cell is independent from prior cells.
         detector = FCOS(
-            num_classes=NUM_CLASSES, fpn_channels=128, stem_channels=[128, 128]
+            num_classes=NUM_CLASSES, fpn_channels=64, stem_channels=[64, 64]
         )
         detector.to(device=DEVICE)
         detector.load_state_dict(torch.load(weights_path, map_location="cpu"))
+
         print("Generating example inference images...")
         inference_with_detector(
             detector,
             small_val_loader,
             val_dataset.idx_to_class,
-            score_thresh=0.7,
+            score_thresh=0.6,
             nms_thresh=0.5,
             device=DEVICE,
             dtype=torch.float32,
@@ -215,10 +222,10 @@ if __name__ == '__main__':
         "--overfit", action="store_true" # True
     )
     parser.add_argument(
-        "--inference", type=bool, default=False
+        "--inference", action="store_true"
     )
     parser.add_argument(
-        "--test_inference", type=bool, default=False
+        "--test_inference", action="store_true"
     )
     args = parser.parse_args()
     print(args.test_inference)

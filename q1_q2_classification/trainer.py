@@ -104,6 +104,7 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
         # save model
         if save_this_epoch(args, epoch):
             save_model(epoch, model_name, model)
+        
 
     # Validation iteration
     test_loader = utils.get_data_loader('voc', train=False, batch_size=args.test_batch_size, split='test', inp_size=args.inp_size)

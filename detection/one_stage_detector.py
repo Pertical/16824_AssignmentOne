@@ -449,8 +449,6 @@ class FCOS(nn.Module):
                 matched_gt_deltas_per_fpn_level[level_name] = deltas
             
             matched_gt_deltas.append(matched_gt_deltas_per_fpn_level)
-
-    
     
         ######################################################################
         #                           END OF YOUR CODE                         #
@@ -483,13 +481,17 @@ class FCOS(nn.Module):
         # Feel free to delete this line: (but keep variable names same)
         loss_cls, loss_box, loss_ctr = None, None, None
 
-        print("matched_gt_boxes", matched_gt_boxes.shape)
+        #print("matched_gt_boxes", matched_gt_boxes.shape)
+        # print("matched_gt_boxes", matched_gt_boxes[:, :, -1].shape)
+        # print("matched_gt_boxes", matched_gt_boxes.shape)
 
-        indices = matched_gt_boxes[:, :, -1].to(torch.int64) + 1
+        indices = matched_gt_boxes[:, :, -1].to(torch.int64) + 1 
+
         # print("indices", indices)
-        print("indices shape", indices.shape)
+        #print("indices shape", indices.shape)
 
-        one_hot_index = torch.cat((torch.zeros(1, self.num_classes), torch.eye(self.num_classes)), dim = 0).to(device=indices.device)
+        one_hot_index = torch.cat((torch.zeros(1, self.num_classes), 
+                                   torch.eye(self.num_classes)), dim = 0).to(device=indices.device)
         gt_classes = one_hot_index[indices]
 
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes)
@@ -498,7 +500,7 @@ class FCOS(nn.Module):
         loss_box[matched_gt_deltas < 0] *= 0.0
 
         centerness = fcos_make_centerness_targets(matched_gt_deltas.view(-1, 4))
-        loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.flatten(), centerness, reduction="none")
+        loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.view(-1), centerness, reduction="none")
         loss_ctr[centerness < 0] *= 0.0
 
         ######################################################################
@@ -530,7 +532,7 @@ class FCOS(nn.Module):
         pred_cls_logits: Dict[str, torch.Tensor],
         pred_boxreg_deltas: Dict[str, torch.Tensor],
         pred_ctr_logits: Dict[str, torch.Tensor],
-        test_score_thresh: float = 0.3,
+        test_score_thresh: float = 0.25,
         test_nms_thresh: float = 0.5,
     ):
         """
@@ -591,28 +593,53 @@ class FCOS(nn.Module):
             )
 
             # Compute geometric mean of class logits and centerness:
+            
+            
             level_pred_scores = torch.sqrt(
                 level_cls_logits.sigmoid_() * level_ctr_logits.sigmoid_()
             )
             # Step 1:
             # Replace "pass" statement with your code
+            #   1. Get the most confidently predicted class and its score for
+            #      every box. Use level_pred_scores: (N, num_classes) => (N, )
+            
             level_pred_scores, indices = torch.max(level_pred_scores, dim = 1)
+            
+            #print("level_pred_scores", level_pred_scores)
             
             # Step 2:
             # Replace "pass" statement with your code
-            kept_indices = (level_pred_scores > test_score_thresh).nonzero()
+            #   2. Only retain prediction that have a confidence score higher
+            #      than provided threshold in arguments.
+
+
+            kept_indices = (level_pred_scores > test_score_thresh).nonzero().flatten()
             level_pred_scores = level_pred_scores[kept_indices].flatten()
             level_pred_classes = indices[kept_indices].flatten()
 
+            #print("kept_indices", kept_indices)
+
             # Step 3:
             # Replace "pass" statement with your code
-            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[kept_indices].reshape(-1, 4), level_locations[kept_indices].reshape(-1, 2), self.backbone.fpn_strides[level_name])
+            #   3. Obtain predicted boxes using predicted deltas and locations
+            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[kept_indices].reshape(-1, 4), 
+                                                              level_locations[kept_indices].reshape(-1, 2), 
+                                                              self.backbone.fpn_strides[level_name])
+            
+
+            # print("level_pred_boxes", level_pred_boxes.shape)
+            # print("level_pred_boxes", level_pred_boxes)
+            
             # (K, 4)
 
             # Step 4: Use `images` to get (height, width) for clipping.
             # Replace "pass" statement with your code
+            #   4. Clip XYXY box-cordinates that go beyond the height and
+            #      and width of input image.
+            
             level_pred_boxes[:, 0] = level_pred_boxes[:, 0].clip(min=0)
             level_pred_boxes[:, 1] = level_pred_boxes[:, 1].clip(min=0)
+            
             level_pred_boxes[:, 2] = level_pred_boxes[:, 2].clip(max=images.shape[2])
             level_pred_boxes[:, 3] = level_pred_boxes[:, 3].clip(max=images.shape[3])
 
